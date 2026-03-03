@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "description": "MOLY Issue Tracker",
     "scripts": {
-        "postinstall": "npm install --prefix frontend && npm run build --prefix frontend && npm install --prefix backend",
+        "postinstall": "npm install --prefix frontend && cd frontend && npx vite build && cd .. && npm install --prefix backend",
         "start": "node backend/server.js"
     },
     "engines": {
