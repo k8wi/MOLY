@@ -19,6 +19,10 @@ export default function KanbanBoard() {
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState(null);
 
+    // Filters
+    const [selectedUserId, setSelectedUserId] = useState(null);
+    const [selectedLabelId, setSelectedLabelId] = useState('');
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -172,21 +176,90 @@ export default function KanbanBoard() {
                 </div>
             </header>
 
-            <div className="board-container">
-                <DragDropContext onDragEnd={onDragEnd}>
-                    {columns.map(col => {
-                        const columnTasks = tasks.filter(t => t.status === col.id).sort((a, b) => a.rank - b.rank);
-                        return (
-                            <KanbanColumn
-                                key={col.id}
-                                col={col}
-                                tasks={columnTasks}
-                                onTaskClick={openEditTaskModal}
-                            />
-                        );
-                    })}
-                </DragDropContext>
+            {/* Main Layout containing Board and Sidebar */}
+            <div className="main-wrapper">
+                <div className="board-container">
+                    <DragDropContext onDragEnd={onDragEnd}>
+                        {columns.map(col => {
+                            // Apply filters
+                            const filteredTasks = tasks.filter(t => {
+                                const matchUser = selectedUserId === null || t.assignee_id === selectedUserId;
+                                const matchLabel = selectedLabelId === '' || t.labels?.some(l => l.id.toString() === selectedLabelId.toString());
+                                return t.status === col.id && matchUser && matchLabel;
+                            });
+                            const columnTasks = filteredTasks.sort((a, b) => a.rank - b.rank);
+                            return (
+                                <KanbanColumn
+                                    key={col.id}
+                                    column={col}
+                                    tasks={columnTasks}
+                                    onTaskClick={openEditTaskModal}
+                                />
+                            );
+                        })}
+                    </DragDropContext>
+                </div>
+
+                {/* Dashboard & Filters Sidebar */}
+                <aside className="dashboard-sidebar">
+                    <div className="dashboard-section">
+                        <span className="dashboard-section-title">Task Load</span>
+                        <div className="dashboard-users">
+                            <div
+                                className={`user-row ${selectedUserId === null ? 'selected' : ''}`}
+                                onClick={() => setSelectedUserId(null)}
+                            >
+                                <div className="metric-avatar" title="All Users" style={{ backgroundColor: 'var(--border-color)' }}>
+                                    All
+                                </div>
+                                <span className="user-name">All Users</span>
+                            </div>
+                            {users.map(u => {
+                                const userTaskCount = tasks.filter(t => t.assignee_id === u.id).length;
+                                return (
+                                    <div
+                                        key={u.id}
+                                        className={`user-row ${selectedUserId === u.id ? 'selected' : ''}`}
+                                        onClick={() => setSelectedUserId(selectedUserId === u.id ? null : u.id)}
+                                    >
+                                        <div className="metric-avatar" title={u.name} style={{ backgroundColor: u.color }}>
+                                            {u.name.charAt(0).toUpperCase()}
+                                        </div>
+                                        <span className="user-name">{u.name}</span>
+                                        <span className="metric-inline">{userTaskCount}</span>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="dashboard-section">
+                        <span className="dashboard-section-title">Filter by Label</span>
+                        <div className="dashboard-filters">
+                            <select
+                                className="filter-dropdown"
+                                value={selectedLabelId}
+                                onChange={(e) => setSelectedLabelId(e.target.value)}
+                            >
+                                <option value="">All Labels</option>
+                                {labels.map(l => (
+                                    <option key={l.id} value={l.id}>{l.name}</option>
+                                ))}
+                            </select>
+                            {(selectedUserId !== null || selectedLabelId !== '') && (
+                                <button
+                                    className="filter-clear"
+                                    onClick={() => { setSelectedUserId(null); setSelectedLabelId(''); }}
+                                >
+                                    Clear Filters
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </aside>
             </div>
+
+
 
             {isModalOpen && (
                 <TaskModal

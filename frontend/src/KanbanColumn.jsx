@@ -2,13 +2,13 @@ import React from 'react';
 import { Droppable } from '@hello-pangea/dnd';
 import TaskCard from './TaskCard';
 
-export default function KanbanColumn({ col, tasks, onTaskClick }) {
+export default function KanbanColumn({ column, tasks, onTaskClick }) {
     return (
         <div className="column">
             <div className="column-header">
-                <div className="column-title">{col.title} <span className="stats-count" style={{ marginLeft: '8px' }}>{tasks.length}</span></div>
+                <div className="column-title">{column.title} <span className="stats-count" style={{ marginLeft: '8px' }}>{tasks.length}</span></div>
             </div>
-            <Droppable droppableId={col.id}>
+            <Droppable droppableId={column.id}>
                 {(provided, snapshot) => (
                     <div
                         className="task-list"
