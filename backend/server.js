@@ -131,6 +131,28 @@ app.post('/api/labels', async (req, res) => {
   }
 });
 
+app.put('/api/labels/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name, color } = req.body;
+  try {
+    await db.execute({ sql: `UPDATE labels SET name = ?, color = ? WHERE id = ?`, args: [name, color, id] });
+    res.json({ success: true, id, name, color });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/labels/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.execute({ sql: `DELETE FROM task_labels WHERE label_id = ?`, args: [id] });
+    const result = await db.execute({ sql: `DELETE FROM labels WHERE id = ?`, args: [id] });
+    res.json({ success: true, deleted: result.rowsAffected });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/tasks', async (req, res) => {
   const query = `
     SELECT t.*, u.name as assignee_name, u.color as assignee_color

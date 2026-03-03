@@ -19,6 +19,8 @@ const api = {
     // Labels
     getLabels: () => axios.get(`${API_BASE}/labels`).then(res => res.data),
     createLabel: (data) => axios.post(`${API_BASE}/labels`, data).then(res => res.data),
+    updateLabel: (id, data) => axios.put(`${API_BASE}/labels/${id}`, data).then(res => res.data),
+    deleteLabel: (id) => axios.delete(`${API_BASE}/labels/${id}`).then(res => res.data),
 };
 
 export default api;

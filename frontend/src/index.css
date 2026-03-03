@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
 :root {
   --bg-primary: #121212;
@@ -28,7 +28,7 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.5;
@@ -104,6 +104,11 @@ body {
   color: white;
 }
 
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
 .btn-primary:hover {
   background-color: var(--accent-blue-hover);
 }
@@ -150,70 +155,55 @@ body {
 
 .dashboard-users {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
 .user-row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem;
-  border-radius: var(--radius-sm);
+  gap: 0;
+  padding: 4px;
+  border-radius: 20px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
   cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
-  border: 1px solid transparent;
+  transition: all 0.2s;
 }
 
 .user-row:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--border-color);
 }
 
 .user-row.selected {
   background-color: rgba(59, 130, 246, 0.15);
-  /* light blue accent */
   border-color: var(--accent-blue);
-  color: white;
-}
-
-.user-name {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-primary);
-  flex: 1;
-  /* push the metric tag to the right edge */
+  box-shadow: 0 0 0 1px var(--accent-blue);
 }
 
 .metric-avatar {
   position: relative;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   box-shadow: var(--shadow-sm);
 }
 
 .metric-inline {
-  background-color: var(--bg-primary);
   color: var(--text-secondary);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
-  min-width: 24px;
-  text-align: center;
+  padding: 0 8px;
 }
 
 .user-row.selected .metric-inline {
-  background-color: var(--accent-blue);
-  color: white;
-  border-color: var(--accent-blue);
+  color: var(--accent-blue);
 }
 
 .dashboard-filters {
@@ -451,6 +441,42 @@ body {
   gap: 1rem;
 }
 
+.settings-tab {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
+.settings-tab:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.settings-tab.active {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: var(--accent-blue);
+  font-weight: 600;
+}
+
+.settings-panel {
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.2s;
+}
+
+.settings-panel h3 {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
@@ -461,6 +487,31 @@ body {
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--text-secondary);
+}
+
+.color-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.color-swatch:hover {
+  transform: scale(1.1);
+}
+
+.color-swatch.selected {
+  border-color: white;
+  box-shadow: 0 0 0 2px var(--accent-blue);
+  transform: scale(1.1);
 }
 
 .modal-footer {

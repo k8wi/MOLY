@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DragDropContext } from '@hello-pangea/dnd';
 import KanbanColumn from './KanbanColumn';
 import TaskModal from './TaskModal';
-import UserModal from './UserModal';
+import SettingsModal from './SettingsModal';
 import api from './api';
 
 const columns = [
@@ -16,7 +16,7 @@ export default function KanbanBoard() {
     const [users, setUsers] = useState([]);
     const [labels, setLabels] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState(null);
 
     // Filters
@@ -138,6 +138,22 @@ export default function KanbanBoard() {
         }
     };
 
+    const handleLabelSave = (savedLabel) => {
+        setLabels(prev => {
+            const exists = prev.find(l => l.id === savedLabel.id);
+            if (exists) {
+                return prev.map(l => l.id === savedLabel.id ? savedLabel : l);
+            }
+            return [...prev, savedLabel];
+        });
+        fetchData(); // Refresh tasks to reflect new label colors/names if rendered there
+    };
+
+    const handleLabelDelete = (deletedId) => {
+        setLabels(prev => prev.filter(l => l.id !== deletedId));
+        fetchData(); // Refresh tasks in case they lost a label
+    };
+
     const handleTaskSave = async (taskData) => {
         try {
             if (taskData.id) {
@@ -171,7 +187,13 @@ export default function KanbanBoard() {
                     <div className="stats-card">
                         <div className="stats-item">Total Tasks <span className="stats-count">{tasks.length}</span></div>
                     </div>
-                    <button className="btn btn-secondary" onClick={() => setIsUserModalOpen(true)}>Manage Users</button>
+                    <button className="btn btn-secondary" onClick={() => setIsSettingsModalOpen(true)}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}>
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                        Settings
+                    </button>
                     <button className="btn btn-primary" onClick={openNewTaskModal}>+ Create Task</button>
                 </div>
             </header>
@@ -212,7 +234,7 @@ export default function KanbanBoard() {
                                 <div className="metric-avatar" title="All Users" style={{ backgroundColor: 'var(--border-color)' }}>
                                     All
                                 </div>
-                                <span className="user-name">All Users</span>
+                                <span className="metric-inline">{tasks.length}</span>
                             </div>
                             {users.map(u => {
                                 const userTaskCount = tasks.filter(t => t.assignee_id === u.id).length;
@@ -221,11 +243,11 @@ export default function KanbanBoard() {
                                         key={u.id}
                                         className={`user-row ${selectedUserId === u.id ? 'selected' : ''}`}
                                         onClick={() => setSelectedUserId(selectedUserId === u.id ? null : u.id)}
+                                        title={u.name}
                                     >
-                                        <div className="metric-avatar" title={u.name} style={{ backgroundColor: u.color }}>
+                                        <div className="metric-avatar" style={{ backgroundColor: u.color }}>
                                             {u.name.charAt(0).toUpperCase()}
                                         </div>
-                                        <span className="user-name">{u.name}</span>
                                         <span className="metric-inline">{userTaskCount}</span>
                                     </div>
                                 )
@@ -273,12 +295,15 @@ export default function KanbanBoard() {
                 />
             )}
 
-            {isUserModalOpen && (
-                <UserModal
+            {isSettingsModalOpen && (
+                <SettingsModal
                     users={users}
-                    onClose={closeUserModal}
-                    onSave={handleUserCreate}
-                    onDelete={handleUserDelete}
+                    labels={labels}
+                    onClose={() => setIsSettingsModalOpen(false)}
+                    onUserSave={handleUserCreate}
+                    onUserDelete={handleUserDelete}
+                    onLabelSave={handleLabelSave}
+                    onLabelDelete={handleLabelDelete}
                 />
             )}
         </div>
