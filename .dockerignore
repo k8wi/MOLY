@@ -1,9 +1,0 @@
-node_modules
-dist
-.env
-jira_clone.db
-*.db
-.git
-.gitignore
-README.md
-fly.toml
