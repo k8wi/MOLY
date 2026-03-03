@@ -54,7 +54,10 @@ async function initDB() {
       FOREIGN KEY(label_id) REFERENCES labels(id) ON DELETE CASCADE
     )`);
 
-    await db.execute(`INSERT OR IGNORE INTO users (id, name, color) VALUES (1, 'User A', '#6366f1'), (2, 'User B', '#a855f7')`);
+    const userResult = await db.execute("SELECT count(*) as count FROM users");
+    if (userResult.rows[0].count === 0) {
+      await db.execute(`INSERT INTO users (id, name, color) VALUES (1, 'User A', '#6366f1'), (2, 'User B', '#a855f7')`);
+    }
 
     const result = await db.execute("SELECT count(*) as count FROM labels");
     if (result.rows[0].count === 0) {
