@@ -13,7 +13,8 @@ export default function TaskCard({ task, index, onClick }) {
                     onClick={onClick}
                     style={{
                         ...provided.draggableProps.style,
-                        borderLeftColor: task.labels && task.labels.length > 0 ? task.labels[0].color : 'transparent'
+                        border: task.priority === 'High' ? '2px solid #ef4444' : task.priority === 'Low' ? '2px solid #eab308' : '2px solid #f97316',
+                        borderLeftColor: task.labels && task.labels.length > 0 ? task.labels[0].color : (task.priority === 'High' ? '#ef4444' : task.priority === 'Low' ? '#eab308' : '#f97316')
                     }}
                 >
                     <div className="task-title">{task.title}</div>

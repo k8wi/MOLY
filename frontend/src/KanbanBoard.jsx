@@ -22,6 +22,7 @@ export default function KanbanBoard() {
     // Filters
     const [selectedUserId, setSelectedUserId] = useState(null);
     const [selectedLabelId, setSelectedLabelId] = useState('');
+    const [selectedPriority, setSelectedPriority] = useState('');
 
     useEffect(() => {
         fetchData();
@@ -206,11 +207,11 @@ export default function KanbanBoard() {
                 <div className="board-container">
                     <DragDropContext onDragEnd={onDragEnd}>
                         {columns.map(col => {
-                            // Apply filters
                             const filteredTasks = tasks.filter(t => {
                                 const matchUser = selectedUserId === null || t.assignee_id === selectedUserId;
                                 const matchLabel = selectedLabelId === '' || t.labels?.some(l => l.id.toString() === selectedLabelId.toString());
-                                return t.status === col.id && matchUser && matchLabel;
+                                const matchPriority = selectedPriority === '' || t.priority === selectedPriority;
+                                return t.status === col.id && matchUser && matchLabel && matchPriority;
                             });
                             const columnTasks = filteredTasks.sort((a, b) => a.rank - b.rank);
                             return (
@@ -259,7 +260,7 @@ export default function KanbanBoard() {
                     </div>
 
                     <div className="dashboard-section">
-                        <span className="dashboard-section-title">Filter by Label</span>
+                        <span className="dashboard-section-title">Filter by Attributes</span>
                         <div className="dashboard-filters">
                             <select
                                 className="filter-dropdown"
@@ -271,10 +272,24 @@ export default function KanbanBoard() {
                                     <option key={l.id} value={l.id}>{l.name}</option>
                                 ))}
                             </select>
-                            {(selectedUserId !== null || selectedLabelId !== '') && (
+
+                            <select
+                                className="filter-dropdown"
+                                value={selectedPriority}
+                                onChange={(e) => setSelectedPriority(e.target.value)}
+                                style={{ marginTop: '0.5rem' }}
+                            >
+                                <option value="">All Priorities</option>
+                                <option value="Low">Low</option>
+                                <option value="Medium">Medium</option>
+                                <option value="High">High</option>
+                            </select>
+
+                            {(selectedUserId !== null || selectedLabelId !== '' || selectedPriority !== '') && (
                                 <button
                                     className="filter-clear"
-                                    onClick={() => { setSelectedUserId(null); setSelectedLabelId(''); }}
+                                    onClick={() => { setSelectedUserId(null); setSelectedLabelId(''); setSelectedPriority(''); }}
+                                    style={{ marginTop: '0.5rem' }}
                                 >
                                     Clear Filters
                                 </button>

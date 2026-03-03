@@ -5,6 +5,7 @@ export default function TaskModal({ task, users, labels, onClose, onSave, onLabe
         title: '',
         description: '',
         status: 'Backlog',
+        priority: 'Medium',
         assignee_id: '',
         label_ids: []
     });
@@ -20,6 +21,7 @@ export default function TaskModal({ task, users, labels, onClose, onSave, onLabe
                 title: task.title || '',
                 description: task.description || '',
                 status: task.status || 'Backlog',
+                priority: task.priority || 'Medium',
                 assignee_id: task.assignee_id || '',
                 label_ids: task.labels ? task.labels.map(l => l.id) : []
             });
@@ -109,6 +111,14 @@ export default function TaskModal({ task, users, labels, onClose, onSave, onLabe
                                     <option value="Backlog">Backlog</option>
                                     <option value="In Progress">In Progress</option>
                                     <option value="Done">Done</option>
+                                </select>
+                            </div>
+                            <div className="form-group" style={{ flex: 1 }}>
+                                <label>Priority</label>
+                                <select name="priority" className="input-base" value={formData.priority} onChange={handleChange}>
+                                    <option value="Low">Low</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="High">High</option>
                                 </select>
                             </div>
                             <div className="form-group" style={{ flex: 1 }}>

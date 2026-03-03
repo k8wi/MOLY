@@ -39,12 +39,17 @@ async function initDB() {
       title TEXT NOT NULL,
       description TEXT,
       status TEXT,
+      priority TEXT DEFAULT 'Medium',
       assignee_id INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       rank INTEGER,
       FOREIGN KEY(assignee_id) REFERENCES users(id) ON DELETE SET NULL
     )`);
+
+    try {
+      await db.execute(`ALTER TABLE tasks ADD COLUMN priority TEXT DEFAULT 'Medium'`);
+    } catch (e) { /* ignore if exists */ }
 
     await db.execute(`CREATE TABLE IF NOT EXISTS task_labels (
       task_id INTEGER,
@@ -177,8 +182,9 @@ app.get('/api/tasks', async (req, res) => {
 });
 
 app.post('/api/tasks', async (req, res) => {
-  const { title, description, status, assignee_id, label_ids } = req.body;
+  const { title, description, status, priority, assignee_id, label_ids } = req.body;
   const initialStatus = status || 'Backlog';
+  const initialPriority = priority || 'Medium';
 
   try {
     // For Turso, SQLite max subqueries are a bit sensitive but standard SQL works. 
@@ -190,8 +196,8 @@ app.post('/api/tasks', async (req, res) => {
     const nextRank = rankResult.rows[0].newRank;
 
     const taskResult = await db.execute({
-      sql: `INSERT INTO tasks (title, description, status, assignee_id, rank) VALUES (?, ?, ?, ?, ?)`,
-      args: [title, description || '', initialStatus, assignee_id || null, nextRank]
+      sql: `INSERT INTO tasks (title, description, status, priority, assignee_id, rank) VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [title, description || '', initialStatus, initialPriority, assignee_id || null, nextRank]
     });
 
     const taskId = parseInt(taskResult.lastInsertRowid.toString());
@@ -214,13 +220,14 @@ app.post('/api/tasks', async (req, res) => {
 
 app.put('/api/tasks/:id', async (req, res) => {
   const { id } = req.params;
-  const { title, description, status, assignee_id, label_ids, rank } = req.body;
+  const { title, description, status, priority, assignee_id, label_ids, rank } = req.body;
 
   const updates = [];
   const args = [];
   if (title !== undefined) { updates.push('title = ?'); args.push(title); }
   if (description !== undefined) { updates.push('description = ?'); args.push(description); }
   if (status !== undefined) { updates.push('status = ?'); args.push(status); }
+  if (priority !== undefined) { updates.push('priority = ?'); args.push(priority); }
   if (assignee_id !== undefined) { updates.push('assignee_id = ?'); args.push(assignee_id); }
   if (rank !== undefined) { updates.push('rank = ?'); args.push(rank); }
 
