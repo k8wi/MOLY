@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Use relative path in production so it works on any hosted server domain
-const API_BASE = import.meta.env.PROD ? '/api' : 'http://localhost:3001/api';
+// Use proxy configured in vite.config.js for local dev, and relative path for prod
+const API_BASE = '/api';
 
 const api = {
     // Tasks
