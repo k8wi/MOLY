@@ -1,0 +1,12 @@
+{
+    "name": "moly",
+    "version": "1.0.0",
+    "description": "MOLY Issue Tracker",
+    "scripts": {
+        "postinstall": "npm install --prefix frontend && npm run build --prefix frontend && npm install --prefix backend",
+        "start": "node backend/server.js"
+    },
+    "engines": {
+        "node": "18.x"
+    }
+}
