@@ -182,7 +182,10 @@ export default function KanbanBoard() {
     return (
         <div className="app-container">
             <header className="header">
-                <h1>MOLY</h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <img src="/MOLY.png" alt="MOLY Logo" style={{ height: '32px', width: 'auto' }} />
+                    <h1 style={{ margin: 0 }}>MOLY</h1>
+                </div>
                 <div className="toolbar">
                     <div className="stats-card">
                         <div className="stats-item">Total Tasks <span className="stats-count">{tasks.length}</span></div>
