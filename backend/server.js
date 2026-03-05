@@ -28,6 +28,13 @@ async function initDB() {
       await db.execute(`ALTER TABLE users ADD COLUMN color TEXT`);
     } catch (e) { /* ignore if exists */ }
 
+    await db.execute(`CREATE TABLE IF NOT EXISTS boards (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+
     await db.execute(`CREATE TABLE IF NOT EXISTS labels (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT,
@@ -36,6 +43,7 @@ async function initDB() {
 
     await db.execute(`CREATE TABLE IF NOT EXISTS tasks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      board_id INTEGER,
       title TEXT NOT NULL,
       description TEXT,
       status TEXT,
@@ -43,13 +51,23 @@ async function initDB() {
       assignee_id INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      due_date DATETIME,
       rank INTEGER,
-      FOREIGN KEY(assignee_id) REFERENCES users(id) ON DELETE SET NULL
+      FOREIGN KEY(assignee_id) REFERENCES users(id) ON DELETE SET NULL,
+      FOREIGN KEY(board_id) REFERENCES boards(id) ON DELETE CASCADE
     )`);
 
     try {
       await db.execute(`ALTER TABLE tasks ADD COLUMN priority TEXT DEFAULT 'Medium'`);
     } catch (e) { /* ignore if exists */ }
+
+    try {
+      await db.execute(`ALTER TABLE tasks ADD COLUMN board_id INTEGER REFERENCES boards(id) ON DELETE CASCADE`);
+    } catch (e) { /* ignore if exists */ }
+
+    try {
+      await db.execute(`ALTER TABLE tasks ADD COLUMN due_date DATETIME`);
+    } catch (e) { console.error("Error adding due_date column:", e.message); }
 
     await db.execute(`CREATE TABLE IF NOT EXISTS task_labels (
       task_id INTEGER,
@@ -62,6 +80,16 @@ async function initDB() {
     const userResult = await db.execute("SELECT count(*) as count FROM users");
     if (userResult.rows[0].count === 0) {
       await db.execute(`INSERT INTO users (id, name, color) VALUES (1, 'User A', '#6366f1'), (2, 'User B', '#a855f7')`);
+    }
+
+    const boardResult = await db.execute("SELECT count(*) as count FROM boards");
+    if (boardResult.rows[0].count === 0) {
+      await db.execute(`INSERT INTO boards (id, name) VALUES (1, 'APP')`);
+
+      // Migrate existing tasks to the default board if board_id is null
+      try {
+        await db.execute(`UPDATE tasks SET board_id = 1 WHERE board_id IS NULL`);
+      } catch (e) { console.error('Migration error:', e); }
     }
 
     const result = await db.execute("SELECT count(*) as count FROM labels");
@@ -81,6 +109,59 @@ initDB();
 
 // --- API ROUTES ---
 
+// --- BOARDS API ---
+app.get('/api/boards', async (req, res) => {
+  try {
+    const result = await db.execute('SELECT * FROM boards ORDER BY id ASC');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/boards', async (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'Name is required' });
+
+  try {
+    const insertResult = await db.execute({
+      sql: `INSERT INTO boards (name) VALUES (?)`,
+      args: [name]
+    });
+    res.json({ id: parseInt(insertResult.lastInsertRowid.toString()), name });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/boards/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+
+  if (!name) return res.status(400).json({ error: 'Name is required' });
+
+  try {
+    await db.execute({
+      sql: `UPDATE boards SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      args: [name, id]
+    });
+    res.json({ success: true, id: parseInt(id), name });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/boards/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await db.execute({ sql: `DELETE FROM boards WHERE id = ?`, args: [id] });
+    res.json({ success: true, deleted: result.rowsAffected });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- USERS API ---
 app.get('/api/users', async (req, res) => {
   try {
     const result = await db.execute('SELECT * FROM users');
@@ -159,14 +240,19 @@ app.delete('/api/labels/:id', async (req, res) => {
 });
 
 app.get('/api/tasks', async (req, res) => {
+  const { boardId } = req.query;
   const query = `
     SELECT t.*, u.name as assignee_name, u.color as assignee_color
     FROM tasks t
     LEFT JOIN users u ON t.assignee_id = u.id
+    ${boardId ? 'WHERE t.board_id = ?' : ''}
     ORDER BY t.rank ASC, t.created_at DESC
   `;
   try {
-    const taskResult = await db.execute(query);
+    const taskResult = await db.execute({
+      sql: query,
+      args: boardId ? [boardId] : []
+    });
     const labelResult = await db.execute(`SELECT tl.task_id, l.* FROM task_labels tl JOIN labels l ON tl.label_id = l.id`);
 
     const tasksWithLabels = taskResult.rows.map(t => {
@@ -182,22 +268,25 @@ app.get('/api/tasks', async (req, res) => {
 });
 
 app.post('/api/tasks', async (req, res) => {
-  const { title, description, status, priority, assignee_id, label_ids } = req.body;
+  const { title, description, status, priority, assignee_id, label_ids, board_id, due_date } = req.body;
   const initialStatus = status || 'Backlog';
   const initialPriority = priority || 'Medium';
+  const targetBoardId = board_id || 1; // Default to APP if none provided
+
+  console.log("POST /api/tasks req.body:", req.body);
 
   try {
     // For Turso, SQLite max subqueries are a bit sensitive but standard SQL works. 
     // We will do rank calc directly before
     const rankResult = await db.execute({
-      sql: `SELECT COALESCE(MAX(rank), 0) + 1 as newRank FROM tasks WHERE status = ?`,
-      args: [initialStatus]
+      sql: `SELECT COALESCE(MAX(rank), 0) + 1 as newRank FROM tasks WHERE status = ? AND board_id = ?`,
+      args: [initialStatus, targetBoardId]
     });
     const nextRank = rankResult.rows[0].newRank;
 
     const taskResult = await db.execute({
-      sql: `INSERT INTO tasks (title, description, status, priority, assignee_id, rank) VALUES (?, ?, ?, ?, ?, ?)`,
-      args: [title, description || '', initialStatus, initialPriority, assignee_id || null, nextRank]
+      sql: `INSERT INTO tasks (board_id, title, description, status, priority, assignee_id, due_date, rank) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [targetBoardId, title, description || '', initialStatus, initialPriority, assignee_id || null, due_date || null, nextRank]
     });
 
     const taskId = parseInt(taskResult.lastInsertRowid.toString());
@@ -220,7 +309,9 @@ app.post('/api/tasks', async (req, res) => {
 
 app.put('/api/tasks/:id', async (req, res) => {
   const { id } = req.params;
-  const { title, description, status, priority, assignee_id, label_ids, rank } = req.body;
+  const { title, description, status, priority, assignee_id, label_ids, rank, due_date } = req.body;
+
+  console.log(`PUT /api/tasks/${id} req.body:`, req.body);
 
   const updates = [];
   const args = [];
@@ -229,6 +320,7 @@ app.put('/api/tasks/:id', async (req, res) => {
   if (status !== undefined) { updates.push('status = ?'); args.push(status); }
   if (priority !== undefined) { updates.push('priority = ?'); args.push(priority); }
   if (assignee_id !== undefined) { updates.push('assignee_id = ?'); args.push(assignee_id); }
+  if (due_date !== undefined) { updates.push('due_date = ?'); args.push(due_date); }
   if (rank !== undefined) { updates.push('rank = ?'); args.push(rank); }
 
   try {

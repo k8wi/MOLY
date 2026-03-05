@@ -2,12 +2,17 @@ import React, { useState } from 'react';
 import api from './api';
 
 export default function SettingsModal({
-    users, labels,
+    boards, users, labels,
     onClose,
+    onBoardSave, onBoardDelete,
     onUserSave, onUserDelete,
     onLabelSave, onLabelDelete
 }) {
-    const [activeTab, setActiveTab] = useState('labels'); // 'labels' or 'users'
+    const [activeTab, setActiveTab] = useState('boards'); // 'boards', 'labels' or 'users'
+
+    // --- Boards State ---
+    const [boardName, setBoardName] = useState('');
+    const [editingBoard, setEditingBoard] = useState(null);
 
     // --- Labels State ---
     const [labelName, setLabelName] = useState('');
@@ -22,6 +27,47 @@ export default function SettingsModal({
         '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22c55e',
         '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef', '#f43f5e'
     ];
+
+    // --- Boards Actions ---
+    const handleBoardSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            if (editingBoard) {
+                const updated = await api.updateBoard(editingBoard.id, { name: boardName });
+                onBoardSave(updated);
+                cancelBoardEdit();
+            } else {
+                const newBoard = await api.createBoard({ name: boardName });
+                onBoardSave(newBoard);
+                setBoardName('');
+            }
+        } catch (err) {
+            console.error("Failed to save board", err);
+            alert("Failed to save board");
+        }
+    };
+
+    const handleBoardEditClick = (board) => {
+        setEditingBoard(board);
+        setBoardName(board.name);
+    };
+
+    const cancelBoardEdit = () => {
+        setEditingBoard(null);
+        setBoardName('');
+    };
+
+    const handleBoardDeleteClick = async (id) => {
+        if (!window.confirm("Are you sure you want to delete this board? ALL tasks inside it will be permanently deleted!")) return;
+        try {
+            await api.deleteBoard(id);
+            onBoardDelete(id);
+            if (editingBoard && editingBoard.id === id) cancelBoardEdit();
+        } catch (err) {
+            console.error("Failed to delete board", err);
+            alert("Failed to delete board (cannot delete if it's the last board).");
+        }
+    };
 
     // --- Labels Actions ---
     const handleLabelSubmit = async (e) => {
@@ -102,6 +148,12 @@ export default function SettingsModal({
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '0 1rem' }}>
                         <button
+                            className={`settings-tab ${activeTab === 'boards' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('boards')}
+                        >
+                            Manage Boards
+                        </button>
+                        <button
                             className={`settings-tab ${activeTab === 'labels' ? 'active' : ''}`}
                             onClick={() => setActiveTab('labels')}
                         >
@@ -123,6 +175,64 @@ export default function SettingsModal({
                     </div>
 
                     <div className="modal-body" style={{ flex: 1, overflowY: 'auto', paddingTop: '0' }}>
+
+                        {activeTab === 'boards' && (
+                            <div className="settings-panel">
+                                <h3>Boards</h3>
+                                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Create, rename, and delete project boards.</p>
+
+                                <form onSubmit={handleBoardSubmit} className="form-group settings-card">
+                                    <label>{editingBoard ? 'Rename Board' : 'Create New Board'}</label>
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        <input
+                                            className="input-base"
+                                            type="text"
+                                            placeholder="Board Name"
+                                            value={boardName}
+                                            onChange={(e) => setBoardName(e.target.value)}
+                                            required
+                                            style={{ flex: 1 }}
+                                        />
+                                        <button type="submit" className="btn btn-primary btn-sm">
+                                            {editingBoard ? 'Save' : 'Create'}
+                                        </button>
+                                        {editingBoard && (
+                                            <button type="button" className="btn btn-secondary btn-sm" onClick={cancelBoardEdit}>
+                                                Cancel
+                                            </button>
+                                        )}
+                                    </div>
+                                </form>
+
+                                <div className="user-list">
+                                    <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, color: 'var(--text-primary)' }}>Your Boards</label>
+                                    {boards?.length === 0 ? (
+                                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', textAlign: 'center', padding: '2rem', backgroundColor: 'var(--bg-kanban)', borderRadius: 'var(--radius-md)' }}>No boards found.</div>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                            {boards?.map(b => (
+                                                <div key={b.id} style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center',
+                                                    backgroundColor: 'var(--bg-kanban)',
+                                                    padding: '0.5rem 1rem',
+                                                    borderRadius: 'var(--radius-md)',
+                                                    border: '1px solid var(--border-color)',
+                                                    transition: 'all 0.2s'
+                                                }}>
+                                                    <span style={{ fontWeight: '500', color: 'var(--text-primary)', fontSize: '0.9rem' }}>{b.name}</span>
+                                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                        <button className="btn btn-secondary btn-sm" onClick={() => handleBoardEditClick(b)}>Rename</button>
+                                                        <button className="btn btn-danger btn-sm" onClick={() => handleBoardDeleteClick(b.id)} disabled={boards.length <= 1}>Delete</button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
                         {activeTab === 'labels' && (
                             <div className="settings-panel">

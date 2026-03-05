@@ -4,8 +4,14 @@ import axios from 'axios';
 const API_BASE = '/api';
 
 const api = {
+    // Boards
+    getBoards: () => axios.get(`${API_BASE}/boards`).then(res => res.data),
+    createBoard: (data) => axios.post(`${API_BASE}/boards`, data).then(res => res.data),
+    updateBoard: (id, data) => axios.put(`${API_BASE}/boards/${id}`, data).then(res => res.data),
+    deleteBoard: (id) => axios.delete(`${API_BASE}/boards/${id}`).then(res => res.data),
+
     // Tasks
-    getTasks: () => axios.get(`${API_BASE}/tasks`).then(res => res.data),
+    getTasks: (boardId) => axios.get(`${API_BASE}/tasks${boardId ? `?boardId=${boardId}` : ''}`).then(res => res.data),
     createTask: (data) => axios.post(`${API_BASE}/tasks`, data).then(res => res.data),
     updateTask: (id, data) => axios.put(`${API_BASE}/tasks/${id}`, data).then(res => res.data),
     deleteTask: (id) => axios.delete(`${API_BASE}/tasks/${id}`).then(res => res.data),

@@ -7,6 +7,7 @@ export default function TaskModal({ task, users, labels, onClose, onSave, onLabe
         status: 'Backlog',
         priority: 'Medium',
         assignee_id: '',
+        due_date: '',
         label_ids: []
     });
 
@@ -23,6 +24,7 @@ export default function TaskModal({ task, users, labels, onClose, onSave, onLabe
                 status: task.status || 'Backlog',
                 priority: task.priority || 'Medium',
                 assignee_id: task.assignee_id || '',
+                due_date: task.due_date ? task.due_date.split('T')[0] : '',
                 label_ids: task.labels ? task.labels.map(l => l.id) : []
             });
         }
@@ -67,7 +69,8 @@ export default function TaskModal({ task, users, labels, onClose, onSave, onLabe
         e.preventDefault();
         onSave({
             ...formData,
-            assignee_id: formData.assignee_id ? parseInt(formData.assignee_id) : null
+            assignee_id: formData.assignee_id ? parseInt(formData.assignee_id) : null,
+            due_date: formData.due_date ? new Date(formData.due_date).toISOString() : null
         });
     };
 
@@ -129,6 +132,16 @@ export default function TaskModal({ task, users, labels, onClose, onSave, onLabe
                                         <option key={u.id} value={u.id}>{u.name}</option>
                                     ))}
                                 </select>
+                            </div>
+                            <div className="form-group" style={{ flex: 1 }}>
+                                <label>Due Date</label>
+                                <input
+                                    type="date"
+                                    name="due_date"
+                                    className="input-base"
+                                    value={formData.due_date}
+                                    onChange={handleChange}
+                                />
                             </div>
                         </div>
 

@@ -5,18 +5,21 @@ MOLY is a fast, lightweight, and responsive Jira-like issue tracking application
 ## ✨ Features
 
 - **Kanban Board**: Organize tasks into "Backlog", "In Progress", and "Done" columns.
+- **Multiple Boards**: Create, rename, delete, and switch between completely isolated Kanban boards (Defaults to "APP" board).
 - **Drag-and-Drop**: Seamlessly reorder tasks within columns or move them across statuses.
+- **Task Priorities**: Assign Low, Medium, or High priorities with distinct visual color cues on the cards.
+- **Due Dates**: Set completion dates for tasks with smart, dynamic text indicating "Due in X days" or "Overdue".
 - **Dynamic Task Management**: Create, edit, and safely delete tasks. 
 - **Custom Users**: Create users with custom color profiles to easily identify task assignments at a glance on the board.
 - **Custom Labels**: Dynamically create and assign multi-colored labels to tasks.
 - **Premium Dark Mode UI**: A beautiful, aesthetically pleasing dark theme with subtle micro-animations.
-- **Lightweight Backend**: Powered by Node.js, Express, and a self-contained SQLite database for lightning-fast local performance.
+- **Cloud Database**: Fast remote connection powered by Turso (libSQL) using a distributed, lightweight backend.
 
 ## 🛠️ Tech Stack
 
 - **Frontend**: React, Vite, CSS (Vanilla), `@hello-pangea/dnd` for drag-and-drop, Axios.
-- **Backend**: Node.js, Express, `sqlite3`.
-- **Database**: SQLite (local `.db` file).
+- **Backend**: Node.js, Express, `@libsql/client`.
+- **Database**: Turso Cloud Database (SQLite-compatible).
 
 ## 🚀 Getting Started Locally
 
@@ -31,7 +34,7 @@ cd backend
 npm install
 node server.js
 ```
-*Note: The server will start on port `3001` and automatically initialize the `jira_clone.db` SQLite database if it doesn't exist.*
+*Note: The server will start on port `3001` and automatically connect to your configured Turso database for persistence.*
 
 ### 2. Start the Frontend Application
 
@@ -47,7 +50,7 @@ Visit the local URL provided by Vite (usually `http://localhost:5173`) in your b
 
 ## 📦 Preparing for Production Deployment
 
-MOLY's backend is configured to serve the built frontend assets statically, making it a unified application ready for hosting on a single server (like an Oracle Cloud VPS, Fly.io volume, or any server with persistent disk storage for SQLite).
+MOLY's backend is configured to serve the built frontend assets statically, making it a unified application ready for hosting on any Node.js environment (like an Oracle Cloud VPS, Render, or Fly.io). Your data is safely persisted in the Turso Cloud Database independent of the host container.
 
 1. Build the React frontend:
    ```bash

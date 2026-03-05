@@ -12,6 +12,8 @@ const columns = [
 ];
 
 export default function KanbanBoard() {
+    const [boards, setBoards] = useState([]);
+    const [selectedBoardId, setSelectedBoardId] = useState(null);
     const [tasks, setTasks] = useState([]);
     const [users, setUsers] = useState([]);
     const [labels, setLabels] = useState([]);
@@ -26,12 +28,28 @@ export default function KanbanBoard() {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [selectedBoardId]); // Re-fetch when board changes
 
     const fetchData = async () => {
         try {
+            // First fetch boards if not loaded
+            let currentBoards = boards;
+            if (currentBoards.length === 0) {
+                currentBoards = await api.getBoards();
+                setBoards(currentBoards);
+            }
+
+            // Determine active board ID
+            let activeBoardId = selectedBoardId;
+            if (!activeBoardId && currentBoards.length > 0) {
+                activeBoardId = currentBoards[0].id;
+                setSelectedBoardId(activeBoardId);
+            }
+
+            if (!activeBoardId) return; // No boards exist
+
             const [fetchedTasks, fetchedUsers, fetchedLabels] = await Promise.all([
-                api.getTasks(),
+                api.getTasks(activeBoardId),
                 api.getUsers(),
                 api.getLabels()
             ]);
@@ -160,7 +178,7 @@ export default function KanbanBoard() {
             if (taskData.id) {
                 await api.updateTask(taskData.id, taskData);
             } else {
-                await api.createTask(taskData);
+                await api.createTask({ ...taskData, board_id: selectedBoardId });
             }
             fetchData();
             closeModal();
@@ -180,12 +198,44 @@ export default function KanbanBoard() {
         }
     };
 
+    const handleBoardSave = (savedBoard) => {
+        setBoards(prev => {
+            const exists = prev.find(b => b.id === savedBoard.id);
+            if (exists) {
+                return prev.map(b => b.id === savedBoard.id ? savedBoard : b);
+            }
+            return [...prev, savedBoard];
+        });
+        // Select the newly created board automatically
+        if (!boards.find(b => b.id === savedBoard.id)) {
+            setSelectedBoardId(savedBoard.id);
+        }
+    };
+
+    const handleBoardDelete = (deletedId) => {
+        const newBoards = boards.filter(b => b.id !== deletedId);
+        setBoards(newBoards);
+        if (selectedBoardId === deletedId && newBoards.length > 0) {
+            setSelectedBoardId(newBoards[0].id);
+        }
+    };
+
     return (
         <div className="app-container">
             <header className="header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <img src="/MOLY.png" alt="MOLY Logo" style={{ height: '32px', width: 'auto' }} />
                     <h1 style={{ margin: 0 }}>MOLY</h1>
+
+                    <select
+                        className="board-select"
+                        value={selectedBoardId || ''}
+                        onChange={(e) => setSelectedBoardId(parseInt(e.target.value))}
+                    >
+                        {boards.map(b => (
+                            <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
+                    </select>
                 </div>
                 <div className="toolbar">
                     <div className="stats-card">
@@ -315,9 +365,12 @@ export default function KanbanBoard() {
 
             {isSettingsModalOpen && (
                 <SettingsModal
+                    boards={boards}
                     users={users}
                     labels={labels}
                     onClose={() => setIsSettingsModalOpen(false)}
+                    onBoardSave={handleBoardSave}
+                    onBoardDelete={handleBoardDelete}
                     onUserSave={handleUserCreate}
                     onUserDelete={handleUserDelete}
                     onLabelSave={handleLabelSave}
